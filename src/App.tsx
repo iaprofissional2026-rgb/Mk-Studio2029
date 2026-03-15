@@ -370,6 +370,7 @@ export default function App() {
       docs: [...knowledgeDocs]
     };
 
+    console.log("Saving persona:", newPersona);
     try {
       const response = await fetch('/api/assistants', {
         method: 'POST',
@@ -377,6 +378,7 @@ export default function App() {
         body: JSON.stringify(newPersona)
       });
 
+      console.log("Save response status:", response.status);
       if (response.ok) {
         setFavoritePersonas(prev => {
           if (existing) {
@@ -387,6 +389,8 @@ export default function App() {
         setSavedPersonaSuccess(true);
         setTimeout(() => setSavedPersonaSuccess(false), 2000);
       } else {
+        const errorData = await response.json();
+        console.error("Save response error:", errorData);
         setSavePersonaError("Erro ao salvar assistente.");
         setTimeout(() => setSavePersonaError(null), 2000);
       }
