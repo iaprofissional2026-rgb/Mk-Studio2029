@@ -107,6 +107,7 @@ export default function App() {
   const [isProcessingBrain, setIsProcessingBrain] = useState(false);
   const [isSavingPersona, setIsSavingPersona] = useState(false);
   const [savedPersonaSuccess, setSavedPersonaSuccess] = useState(false);
+  const [savePersonaError, setSavePersonaError] = useState<string | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState(() => safeLocalStorage.getItem('neural_x_youtube_url') || '');
   const [isBackgroundVideo, setIsBackgroundVideo] = useState(() => safeLocalStorage.getItem('neural_x_is_background_video') === 'true');
   const [brainPrompt, setBrainPrompt] = useState('');
@@ -351,10 +352,15 @@ export default function App() {
   };
 
   const saveToFavorites = async () => {
-    if (!brainProfile) return;
+    if (!brainProfile) {
+      setSavePersonaError("Nenhum perfil de assistente definido.");
+      setTimeout(() => setSavePersonaError(null), 2000);
+      return;
+    }
     
     setIsSavingPersona(true);
     setSavedPersonaSuccess(false);
+    setSavePersonaError(null);
 
     const existing = favoritePersonas.find(p => p.name === brainProfile.name);
     const newPersona = {
@@ -380,9 +386,14 @@ export default function App() {
         });
         setSavedPersonaSuccess(true);
         setTimeout(() => setSavedPersonaSuccess(false), 2000);
+      } else {
+        setSavePersonaError("Erro ao salvar assistente.");
+        setTimeout(() => setSavePersonaError(null), 2000);
       }
     } catch (error) {
       console.error("Erro ao salvar assistente:", error);
+      setSavePersonaError("Erro ao salvar assistente.");
+      setTimeout(() => setSavePersonaError(null), 2000);
     } finally {
       setIsSavingPersona(false);
     }
@@ -2081,16 +2092,18 @@ export default function App() {
                           <button 
                             onClick={saveToFavorites}
                             disabled={isSavingPersona}
-                            className={`px-4 py-2 rounded-xl text-white font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 ${savedPersonaSuccess ? 'bg-green-500/20 text-green-400' : 'bg-white/10 hover:bg-white/20'}`}
+                            className={`px-4 py-2 rounded-xl text-white font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 ${savedPersonaSuccess ? 'bg-green-500/20 text-green-400' : savePersonaError ? 'bg-red-500/20 text-red-400' : 'bg-white/10 hover:bg-white/20'}`}
                           >
                             {isSavingPersona ? (
                               <Loader2 size={12} className="animate-spin" />
                             ) : savedPersonaSuccess ? (
                               <Check size={12} />
+                            ) : savePersonaError ? (
+                              <X size={12} />
                             ) : (
                               <Heart size={12} className="text-secondary" />
                             )}
-                            <span>{isSavingPersona ? 'SALVANDO...' : savedPersonaSuccess ? 'SALVO!' : 'SALVAR'}</span>
+                            <span>{isSavingPersona ? 'SALVANDO...' : savedPersonaSuccess ? 'SALVO!' : savePersonaError ? 'ERRO!' : 'SALVAR'}</span>
                           </button>
                         </div>
                       </div>
