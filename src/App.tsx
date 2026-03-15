@@ -147,6 +147,7 @@ export default function App() {
     fetchChats();
   }, []);
 
+
   const [imageStyle, setImageStyle] = useState('cinematic');
   const [imageRatio, setImageRatio] = useState('1:1');
   const [imageQuality, setImageQuality] = useState('masterpiece');
@@ -387,6 +388,16 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (brainProfile) {
+        saveToFavorites();
+      }
+    }, 2000);
+
+    return () => clearTimeout(handler);
+  }, [brainProfile, knowledgeDocs]);
+
   const loadPersona = (id: string) => {
     const persona = favoritePersonas.find(p => p.id === id);
     if (persona) {
@@ -561,6 +572,7 @@ export default function App() {
     const currentUploadedImage = uploadedImage;
 
     setMessages(prev => [...prev, userMessage]);
+    saveCurrentChat([...messages, userMessage]);
     setInput('');
     setUploadedImage(null);
     setIsLoading(true);
