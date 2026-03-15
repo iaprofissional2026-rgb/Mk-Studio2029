@@ -106,7 +106,6 @@ export default function App() {
   const [isProcessingBrain, setIsProcessingBrain] = useState(false);
   const [isSavingPersona, setIsSavingPersona] = useState(false);
   const [savedPersonaSuccess, setSavedPersonaSuccess] = useState(false);
-  const [elevenLabsApiKey, setElevenLabsApiKey] = useState('');
   const [brainPrompt, setBrainPrompt] = useState('');
   const [brainProfile, setBrainProfile] = useState<{ name: string, description: string } | null>(() => {
     const saved = safeLocalStorage.getItem('neural_x_brain_profile');
