@@ -111,10 +111,18 @@ async function startServer() {
   app.post("/api/assistants", (req, res) => {
     const { id, name, description, docs } = req.body;
     try {
-      const stmt = db.prepare("INSERT INTO assistants (id, name, description, docs) VALUES (?, ?, ?, ?)");
+      const stmt = db.prepare(`
+        INSERT INTO assistants (id, name, description, docs, created_at) 
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(id) DO UPDATE SET 
+          name = excluded.name,
+          description = excluded.description,
+          docs = excluded.docs
+      `);
       stmt.run(id, name, description, JSON.stringify(docs || []));
       res.status(201).json({ success: true });
     } catch (error) {
+      console.error("Error saving assistant:", error);
       res.status(500).json({ error: "Erro ao salvar assistente." });
     }
   });

@@ -91,7 +91,7 @@ export default function App() {
   const [input, setInput] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [model, setModel] = useState('qwen/qwen-2.5-72b-instruct:free');
+  const [model, setModel] = useState('qwen/qwen-2.5-coder-32b-instruct:free');
   const [userApiKey, setUserApiKey] = useState(() => safeLocalStorage.getItem('neural_x_api_key') || import.meta.env.VITE_OPENROUTER_API_KEY || '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');
   const [theme, setTheme] = useState<'masculine' | 'feminine'>(() => (safeLocalStorage.getItem('neural_x_theme') as 'masculine' | 'feminine') || 'masculine');
   const [showSettings, setShowSettings] = useState(false);
@@ -104,6 +104,8 @@ export default function App() {
   });
   const [isBrainActive, setIsBrainActive] = useState(() => safeLocalStorage.getItem('neural_x_brain_active') === 'true');
   const [isProcessingBrain, setIsProcessingBrain] = useState(false);
+  const [isSavingPersona, setIsSavingPersona] = useState(false);
+  const [savedPersonaSuccess, setSavedPersonaSuccess] = useState(false);
   const [brainPrompt, setBrainPrompt] = useState('');
   const [brainProfile, setBrainProfile] = useState<{ name: string, description: string } | null>(() => {
     const saved = safeLocalStorage.getItem('neural_x_brain_profile');
@@ -347,8 +349,12 @@ export default function App() {
   const saveToFavorites = async () => {
     if (!brainProfile) return;
     
+    setIsSavingPersona(true);
+    setSavedPersonaSuccess(false);
+
+    const existing = favoritePersonas.find(p => p.name === brainProfile.name);
     const newPersona = {
-      id: generateId(),
+      id: existing ? existing.id : generateId(),
       name: brainProfile.name,
       description: brainProfile.description,
       docs: [...knowledgeDocs]
@@ -362,10 +368,19 @@ export default function App() {
       });
 
       if (response.ok) {
-        setFavoritePersonas(prev => [newPersona, ...prev]);
+        setFavoritePersonas(prev => {
+          if (existing) {
+            return prev.map(p => p.id === newPersona.id ? newPersona : p);
+          }
+          return [newPersona, ...prev];
+        });
+        setSavedPersonaSuccess(true);
+        setTimeout(() => setSavedPersonaSuccess(false), 2000);
       }
     } catch (error) {
       console.error("Erro ao salvar assistente:", error);
+    } finally {
+      setIsSavingPersona(false);
     }
   };
 
@@ -443,8 +458,7 @@ export default function App() {
       if (response.ok) {
         setSavedChats(prev => prev.filter(c => c.id !== id));
         if (currentChatId === id) {
-          setCurrentChatId(null);
-          setMessages([]);
+          startNewChat();
         }
       }
     } catch (error) {
@@ -454,7 +468,24 @@ export default function App() {
 
   const loadChat = (chat: any) => {
     setCurrentChatId(chat.id);
-    setMessages(chat.messages);
+    setMessages(chat.messages.map((m: any) => ({
+      ...m,
+      timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+    })));
+    
+    if (chat.assistant_id && chat.assistant_id !== 'default') {
+      const persona = favoritePersonas.find(p => p.name === chat.assistant_id);
+      if (persona) {
+        setBrainProfile({ name: persona.name, description: persona.description });
+        setKnowledgeDocs(persona.docs);
+        setIsBrainActive(true);
+      }
+    } else {
+      setIsBrainActive(false);
+      setBrainProfile(null);
+      setKnowledgeDocs([]);
+    }
+    
     setShowSidebar(false);
   };
 
@@ -565,7 +596,7 @@ export default function App() {
               ...recentMessages.map(m => ({ role: m.role, content: m.content })),
               { role: 'user', content: input }
             ],
-            model: model || "qwen/qwen-2.5-72b-instruct:free"
+            model: model || "qwen/qwen-2.5-coder-32b-instruct:free"
           })
         });
 
@@ -802,11 +833,11 @@ export default function App() {
       let content = '';
       
       const fallbackModels = [
-        "qwen/qwen-2.5-72b-instruct:free",
+        "qwen/qwen-2.5-coder-32b-instruct:free",
         "openrouter/healer-alpha"
       ];
       
-      const currentModel = model || "qwen/qwen-2.5-72b-instruct:free";
+      const currentModel = model || "qwen/qwen-2.5-coder-32b-instruct:free";
       const modelsToTry = [currentModel, ...fallbackModels.filter(m => m !== currentModel)];
       
       let success = false;
@@ -1867,9 +1898,19 @@ export default function App() {
                   </div>
 
                   <div className="space-y-3">
-                    <p className="text-[10px] font-mono text-secondary uppercase font-bold tracking-widest flex items-center gap-2">
-                      <Upload size={10} /> Upload de Documentos
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-mono text-secondary uppercase font-bold tracking-widest flex items-center gap-2">
+                        <Upload size={10} /> Upload de Documentos
+                      </p>
+                      {!brainProfile && (
+                        <button 
+                          onClick={() => setBrainProfile({ name: 'Novo Assistente', description: 'Descreva o assistente aqui...' })}
+                          className="text-[10px] font-mono text-white/40 hover:text-secondary uppercase transition-colors"
+                        >
+                          Criar Manualmente
+                        </button>
+                      )}
+                    </div>
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl hover:border-secondary/50 hover:bg-secondary/5 transition-all cursor-pointer group">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 text-white/20 group-hover:text-secondary mb-2 transition-colors" />
@@ -1929,10 +1970,19 @@ export default function App() {
                   {brainProfile && (
                     <div className="pt-4 border-t border-white/5 space-y-4">
                       <div className="p-4 rounded-2xl bg-secondary/10 border border-secondary/20 space-y-3">
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <p className="text-[10px] font-mono text-secondary uppercase font-bold tracking-widest">Perfil Gerado</p>
-                          <h3 className="text-sm font-bold text-white">{brainProfile.name}</h3>
-                          <p className="text-[10px] text-white/60 leading-relaxed italic">"{brainProfile.description}"</p>
+                          <input 
+                            type="text" 
+                            value={brainProfile.name} 
+                            onChange={(e) => setBrainProfile({ ...brainProfile, name: e.target.value })}
+                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm font-bold text-white focus:border-secondary/50 outline-none transition-all"
+                          />
+                          <textarea 
+                            value={brainProfile.description} 
+                            onChange={(e) => setBrainProfile({ ...brainProfile, description: e.target.value })}
+                            className="w-full h-20 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white/60 focus:border-secondary/50 outline-none transition-all resize-none"
+                          />
                         </div>
                         
                         <div className="flex gap-2">
@@ -1945,10 +1995,17 @@ export default function App() {
                           </button>
                           <button 
                             onClick={saveToFavorites}
-                            className="px-4 py-2 rounded-xl bg-white/10 text-white font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition-all"
+                            disabled={isSavingPersona}
+                            className={`px-4 py-2 rounded-xl text-white font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 ${savedPersonaSuccess ? 'bg-green-500/20 text-green-400' : 'bg-white/10 hover:bg-white/20'}`}
                           >
-                            <Heart size={12} className="text-secondary" />
-                            <span>SALVAR</span>
+                            {isSavingPersona ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : savedPersonaSuccess ? (
+                              <Check size={12} />
+                            ) : (
+                              <Heart size={12} className="text-secondary" />
+                            )}
+                            <span>{isSavingPersona ? 'SALVANDO...' : savedPersonaSuccess ? 'SALVO!' : 'SALVAR'}</span>
                           </button>
                         </div>
                       </div>
@@ -1965,7 +2022,7 @@ export default function App() {
                               <p className="text-xs font-bold text-white">{p.name}</p>
                               <p className="text-[9px] text-white/40 truncate">{p.description}</p>
                             </div>
-                            <button onClick={() => setFavoritePersonas(prev => prev.filter((_, i) => i !== idx))} className="p-1.5 text-white/10 hover:text-red-500 transition-colors">
+                            <button onClick={(e) => { e.stopPropagation(); deletePersona(p.id); }} className="p-1.5 text-white/10 hover:text-red-500 transition-colors">
                               <Trash2 size={12} />
                             </button>
                           </div>
@@ -2096,10 +2153,10 @@ export default function App() {
                     <label className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Núcleo de Processamento</label>
                     <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                       <ModelOption 
-                        selected={model === 'qwen/qwen-2.5-72b-instruct:free'} 
-                        onClick={() => setModel('qwen/qwen-2.5-72b-instruct:free')}
-                        label="Qwen 2.5 72B (FREE)"
-                        desc="Análise de Dados de Alta Performance"
+                        selected={model === 'qwen/qwen-2.5-coder-32b-instruct:free'} 
+                        onClick={() => setModel('qwen/qwen-2.5-coder-32b-instruct:free')}
+                        label="Qwen 2.5 Coder 32B (FREE)"
+                        desc="Análise de Dados e Código"
                       />
                       <ModelOption 
                         selected={model === 'openrouter/healer-alpha'} 
