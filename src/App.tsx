@@ -2244,6 +2244,18 @@ export default function App() {
                         desc="Análise de Dados e Código"
                       />
                       <ModelOption 
+                        selected={model === 'meta-llama/llama-3.1-8b-instruct:free'} 
+                        onClick={() => setModel('meta-llama/llama-3.1-8b-instruct:free')}
+                        label="Llama 3.1 8B Instruct (FREE)"
+                        desc="Versátil e Rápido"
+                      />
+                      <ModelOption 
+                        selected={model === 'mistralai/mistral-nemo:free'} 
+                        onClick={() => setModel('mistralai/mistral-nemo:free')}
+                        label="Mistral Nemo 12B (FREE)"
+                        desc="Equilibrado e Eficiente"
+                      />
+                      <ModelOption 
                         selected={model === 'openrouter/healer-alpha'} 
                         onClick={() => setModel('openrouter/healer-alpha')}
                         label="Healer Alpha"
