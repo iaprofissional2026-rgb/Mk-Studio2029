@@ -106,6 +106,7 @@ export default function App() {
   const [isProcessingBrain, setIsProcessingBrain] = useState(false);
   const [isSavingPersona, setIsSavingPersona] = useState(false);
   const [savedPersonaSuccess, setSavedPersonaSuccess] = useState(false);
+  const [elevenLabsApiKey, setElevenLabsApiKey] = useState('');
   const [brainPrompt, setBrainPrompt] = useState('');
   const [brainProfile, setBrainProfile] = useState<{ name: string, description: string } | null>(() => {
     const saved = safeLocalStorage.getItem('neural_x_brain_profile');
@@ -1853,6 +1854,32 @@ export default function App() {
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                {/* ElevenLabs API Key Section */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-mono text-secondary uppercase font-bold tracking-widest flex items-center gap-2">
+                    <Settings size={10} /> Configurações ElevenLabs
+                  </p>
+                  <input 
+                    type="password"
+                    value={elevenLabsApiKey}
+                    onChange={(e) => setElevenLabsApiKey(e.target.value)}
+                    placeholder="Cole sua ElevenLabs API Key aqui..."
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-secondary/50 outline-none transition-all placeholder:text-white/20"
+                  />
+                  <p className="text-[9px] text-white/30">
+                    Obtenha sua chave em <a href="https://elevenlabs.io/app/profile" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">elevenlabs.io/app/profile</a>
+                  </p>
+                </div>
+
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/5"></div>
+                  </div>
+                  <div className="relative flex justify-center text-[8px] uppercase font-mono text-white/20">
+                    <span className="bg-[#0a0a0a] px-2">Gerenciamento de Cérebro</span>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
                     <div>
