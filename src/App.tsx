@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import React, { useState, useRef, useEffect } from 'react';
+import ReactPlayer from 'react-player';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from "@google/genai";
 import { 
@@ -106,6 +107,8 @@ export default function App() {
   const [isProcessingBrain, setIsProcessingBrain] = useState(false);
   const [isSavingPersona, setIsSavingPersona] = useState(false);
   const [savedPersonaSuccess, setSavedPersonaSuccess] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState(() => safeLocalStorage.getItem('neural_x_youtube_url') || '');
+  const [isBackgroundVideo, setIsBackgroundVideo] = useState(() => safeLocalStorage.getItem('neural_x_is_background_video') === 'true');
   const [brainPrompt, setBrainPrompt] = useState('');
   const [brainProfile, setBrainProfile] = useState<{ name: string, description: string } | null>(() => {
     const saved = safeLocalStorage.getItem('neural_x_brain_profile');
@@ -1374,6 +1377,20 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col relative w-full max-w-4xl mx-auto lg:max-w-none">
+        {youtubeUrl && isBackgroundVideo && (
+          <div className="fixed inset-0 z-0">
+            <ReactPlayer 
+              url={youtubeUrl} 
+              width="100%" 
+              height="100%" 
+              playing={true} 
+              muted={true} 
+              loop={true} 
+              config={{ youtube: { playerVars: { origin: window.location.origin } } as any }}
+              {...({} as any)}
+            />
+          </div>
+        )}
         {/* Header - Optimized for Mobile */}
         <header className="h-14 md:h-16 shrink-0 border-b border-dark-border flex items-center justify-between px-3 md:px-6 glass z-20 sticky top-0">
           <div className="flex items-center gap-2 md:gap-3">
@@ -1868,6 +1885,36 @@ export default function App() {
                   <p className="text-[9px] text-white/30">
                     Obtenha sua chave em <a href="https://elevenlabs.io/app/profile" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">elevenlabs.io/app/profile</a>
                   </p>
+                </div>
+
+                {/* YouTube Section */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-mono text-secondary uppercase font-bold tracking-widest flex items-center gap-2">
+                    <Zap size={10} /> YouTube Background
+                  </p>
+                  <input 
+                    type="text"
+                    value={youtubeUrl}
+                    onChange={(e) => {
+                      setYoutubeUrl(e.target.value);
+                      safeLocalStorage.setItem('neural_x_youtube_url', e.target.value);
+                    }}
+                    placeholder="Cole o link do YouTube aqui..."
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-secondary/50 outline-none transition-all placeholder:text-white/20"
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-white/40 font-mono uppercase">Ativar como fundo</p>
+                    <button 
+                      onClick={() => {
+                        const newValue = !isBackgroundVideo;
+                        setIsBackgroundVideo(newValue);
+                        safeLocalStorage.setItem('neural_x_is_background_video', newValue.toString());
+                      }}
+                      className={`w-12 h-6 rounded-full transition-all relative ${isBackgroundVideo ? 'bg-secondary' : 'bg-white/10'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isBackgroundVideo ? 'left-7' : 'left-1'}`} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="relative py-2">
